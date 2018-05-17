@@ -3,13 +3,13 @@ import tensorflow as tf
 
 
 class ModelFeeddict(object):
-    def __init__(self):
+    def __init__(self, num_epochs=10):
+        self.num_epochs = num_epochs
         self.train_data, self.train_labels, self.eval_data, self.eval_labels = self.load_data()
 
         self.images = tf.placeholder(tf.float32, shape=[None, 28 * 28])
         self.input = tf.reshape(tensor=self.images, shape=[-1, 28, 28, 1])
-        self.dropout_placeholder = tf.placeholder(tf.float32)
-        self.labels = tf.placeholder(tf.int32, shape=[None,])
+        self.labels = tf.placeholder(tf.int32, shape=[None, ])
 
         conv1 = tf.layers.conv2d(self.input, 32, [5, 5], padding="same", activation=tf.nn.relu)
         pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2)
@@ -18,7 +18,6 @@ class ModelFeeddict(object):
         pool2 = tf.reshape(pool2, [-1, 7 * 7 * 64])
 
         dense = tf.layers.dense(inputs=pool2, units=1024, activation=tf.nn.relu)
-        dense = tf.layers.dropout(inputs=dense, rate=self.dropout_placeholder)
 
         logits = tf.layers.dense(inputs=dense, units=10)
 
@@ -43,14 +42,23 @@ class ModelFeeddict(object):
 
         return train_data, train_labels, eval_data, eval_labels
 
-    def train(self, batch_size=128, num_epochs=10):
+    def train(self, batch_size=128, max_batches=10000):
         self.session.run(tf.global_variables_initializer())
 
         num_batches = int(np.ceil(self.train_data.shape[0] / batch_size))
 
-        for i in range(num_epochs):
+        processed_batches = 0
+        for i in range(self.num_epochs):
             for j in range(num_batches):
-                print("Epoch {}: Batch {} of {}".format(i, j, num_batches))
                 batch = self.train_data[j*batch_size:(j+1)*batch_size]
                 batch_labels = self.train_labels[j*batch_size:(j+1)*batch_size]
                 self.session.run(self.train_op, feed_dict={self.images: batch, self.labels: batch_labels})
+
+                processed_batches += 1
+            if processed_batches >= max_batches:
+                break
+
+
+if __name__ == '__main__':
+    m = ModelFeeddict()
+    m.train()
